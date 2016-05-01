@@ -1,3 +1,113 @@
+2014-09-18  Werner Koch  <wk@gnupg.org>
+
+	Release 1.0.
+	* configure.ac: Set LT version to C0/A0/R2.
+
+2014-06-27  Werner Koch  <wk@gnupg.org>
+
+	w32: Fix segv in npth_eselect.
+	* w32/npth.c (npth_eselect): Obvious fix.
+
+	w32: Change an npth_eselect arg to unsigned.
+	* w32/npth.c (npth_eselect): Change arg EVENTS_SET to unsigned int.
+
+2014-06-26  Werner Koch  <wk@gnupg.org>
+
+	w32: Let npth_eselect return 0 for timeout. Fix replacement error codes.
+	* w32/npth.c (npth_eselect): Remove debug output.  Return 0 for timeout.
+	* w32/npth.h (ETIMEDOUT, EOPNOTSUPP):  Change to more correct values.
+
+2014-02-19  Werner Koch  <wk@gnupg.org>
+
+	w32: Make npth_eselect actually work.
+	* w32/npth.c (npth_eselect): Rewrite.
+
+	w32: Avoid calling FD_ISSET with a NULL fdset.
+	* w32/npth.c (npth_eselect): Check fdset before callig FD_foo.
+
+2014-01-10  Werner Koch  <wk@gnupg.org>
+
+	Use the generic autogen.sh script.
+	* autogen.rc: New.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* autogen.sh: Update from GnuPG.
+
+	Move helper scripts to build-aux.
+	* config.guess, config.sub, depcomp, install-sh
+	* ltmain.sh, missing: Move to build-aux/.
+	* configure.ac (AC_CONFIG_AUX_DIR): New.
+	(AM_SILENT_RULES): New.
+
+2014-01-09  Werner Koch  <wk@gnupg.org>
+
+	Fix creation of w32 npth-config tool.
+	* src/npth-config.in: Move to ../.
+	* src/npth.m4: Move to ../.
+	* w32/npth-config.in: Remove.
+	* w32/npth.m4: Remove.
+	* Makefile.am (EXTRA_DIST): Add npth-config.in and npth.m4.
+	(bin_SCRIPTS): new.
+	(m4datadir, m4data_DATA): New.
+	* configure.ac (AC_CONFIG_FILES): Adjust accordingly.
+
+	Add configure option --enable-silent-rules.
+	* configure.ac: Add AM_SILENT_RULES.
+
+	Update libtool to support Android.
+	* m4/libtool.m4: Add "linux*android*" case.  Taken from the
+	libgpg-error.
+
+	Update config.{guess.sub} to a decent version (2013-11-29)
+
+	Add hack to have different names for 64 bit Windows DLLs.
+	* ltmain.sh: Prefix the SO number for W64 with a "6".
+
+	Fix libtool 2.4.2 to correctly detect .def files.
+	* ltmain.sh (sed_uncomment_deffile): New.
+	(orig_export_symbols): Uncomment def file before testing for EXPORTS.
+	* m4/libtool.m4: Do the same for the generated code.
+
+	Update libtool to Debian's 2.4.2.
+
+	w32: Fix build problems with current compilers.
+	* configure.ac (NTELIBS): ac_subst for W32.
+	* w32/npth.h (struct timespec): Do not define for current mingw-w64
+	versions.
+
+2013-12-10  NIIBE Yutaka  <gniibe@fsij.org>
+
+	Conditionalize use of pthread_atfork.
+	* configure.ac: Add checking pthread_atfork.
+
+	* src/npth-sigev.c (npth_sigev_fini): Call pthread_atfork only when
+	it's available.
+
+2013-07-03  NIIBE Yutaka  <gniibe@fsij.org>
+
+	Restore sigmask at fork.
+	* src/npth-sigev.c (restore_sigmask_for_child_process): New.
+	(npth_sigev_fini): Register restore_sigmask_for_child_process.
+
+2012-11-21  Ben Kibbey  <bjk@luxsci.net>
+
+	Build fix for NetBSD.
+	* src/npth.c (npth_setname_np): conditional check for __NetBSD__ and
+	adapt correct parameters.
+
+2012-11-16  Werner Koch  <wk@gnupg.org>
+
+	Improve parsing of the GIT revision number.
+	* configure.ac (git_revision): Use git rev-parse.
+
+	Fix non-portable use of chmod in autogen.sh.
+	* autogen.sh: Remove option -c from chmod.
+
+2012-09-26  Werner Koch  <wk@gnupg.org>
+
+	Make local variables configure hack more robust.
+	* configure.ac (emacs_local_vars_begin): Use extra m4 quoting so that
+	newer Emscasen won't take it up as Local Variables for this file.
+
 2012-08-08  Werner Koch  <wk@gnupg.org>
 
 	Release 0.91.

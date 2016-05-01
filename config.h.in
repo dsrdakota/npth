@@ -21,6 +21,9 @@
 /* Define if we have pthread. */
 #undef HAVE_PTHREAD
 
+/* Define to 1 if you have the `pthread_atfork' function. */
+#undef HAVE_PTHREAD_ATFORK
+
 /* Define to 1 if you have the `pthread_getname_np' function. */
 #undef HAVE_PTHREAD_GETNAME_NP
 

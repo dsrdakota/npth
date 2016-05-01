@@ -47,18 +47,23 @@ extern "C" {
 
 struct msghdr;
 
+/* At least with version 2 the mingw-w64 headers define timespec.  For
+   older compilers we keep our replacement.  */
+#if __MINGW64_VERSION_MAJOR < 2
 struct timespec {
   long tv_sec;                 /* seconds */
   long tv_nsec;                /* nanoseconds */
 };
+#endif /*__MINGW64_VERSION_MAJOR < 2*/
 
-/* These are new in MSVC 10.  */
+
 #ifndef ETIMEDOUT
-#define ETIMEDOUT 138
+#define ETIMEDOUT 10060  /* This is WSAETIMEDOUT.  */
 #endif
 #ifndef EOPNOTSUPP
-#define EOPNOTSUPP 130
+#define EOPNOTSUPP 10045 /* This is WSAEOPNOTSUPP.  */
 #endif
+
 
 int npth_init (void);
 
@@ -182,7 +187,8 @@ int npth_pselect(int nfd, fd_set *rfds, fd_set *wfds, fd_set *efds,
    events that occured (which means that there can only be up to 31
    extra events).  */
 int npth_eselect(int nfd, fd_set *rfds, fd_set *wfds, fd_set *efds,
-		 const struct timespec *timeout, HANDLE *events, int *events_set);
+		 const struct timespec *timeout,
+                 HANDLE *events, unsigned int *events_set);
 
 ssize_t npth_read(int fd, void *buf, size_t nbytes);
 ssize_t npth_write(int fd, const void *buf, size_t nbytes);

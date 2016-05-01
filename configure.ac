@@ -35,14 +35,14 @@ min_automake_version="1.11"
 # the version number immediately after the release and do another
 # commit and push so that the git magic is able to work.
 # See below for the LT versions.
-m4_define(my_version, [0.91])
+m4_define(my_version, [1.0])
 
 # Below is m4 magic to extract and compute the git revision number,
 # the decimalized short revision number, a beta version string and a
 # flag indicating a development version (my_isgit). The latter works
 # by requiring the final tag in the repository.
-m4_define([git_revision], m4_esyscmd([git branch -v 2>/dev/null \
-          | awk '/^\* / {printf "%s",$3}']))
+m4_define([git_revision],
+          m4_esyscmd([git rev-parse --short HEAD | tr -d '\n\r']))
 m4_define([git_revision_dec],
           m4_esyscmd_s([echo $((0x$(echo ]git_revision[|head -c 4)))]))
 m4_define([git_betastring],
@@ -61,7 +61,7 @@ AC_INIT([npth],[my_full_version],[gnupg-devel@gnupg.org])
 #
 LIBNPTH_LT_CURRENT=0
 LIBNPTH_LT_AGE=0
-LIBNPTH_LT_REVISION=2
+LIBNPTH_LT_REVISION=3
 
 # If the API is changed in an incompatible way: increment the next counter.
 NPTH_CONFIG_API_VERSION=1
@@ -70,12 +70,14 @@ NPTH_CONFIG_API_VERSION=1
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
+AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/npth.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
+AM_SILENT_RULES
 
 # Enable GNU extensions on systems that have them.
 AC_GNU_SOURCE
@@ -256,6 +258,7 @@ if test "$have_w32_system" = no; then
     AC_CHECK_FUNCS([pthread_rwlock_rdlock pthread_rwlock_wrlock])
     AC_CHECK_FUNCS([pthread_rwlock_timedrdlock pthread_rwlock_timedwrlock])
     AC_CHECK_FUNCS([pthread_rwlock_tryrdlock pthread_rwlock_trywrlock])
+    AC_CHECK_FUNCS([pthread_atfork])
   fi
 fi
 
@@ -272,9 +275,20 @@ fi
 
 
 #
+# Set NETLIBS
+#
+if test "$have_w32ce_system" = yes; then
+   NETLIBS="-lws2 $NETLIBS"
+elif test "$have_w32_system" = yes; then
+   NETLIBS="-lws2_32 $NETLIBS"
+fi
+AC_SUBST(NETLIBS)
+
+
+#
 # Substitutions to set generated files in a Emacs buffer to read-only.
 #
-AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
+AC_SUBST(emacs_local_vars_begin, [['Local][ ][Variables:']])
 AC_SUBST(emacs_local_vars_read_only, ['buffer-read-only: t'])
 AC_SUBST(emacs_local_vars_end, ['End:'])
 
@@ -322,8 +336,7 @@ src/npth.h
 src/Makefile
 w32/Makefile
 tests/Makefile])
-AC_CONFIG_FILES(src/npth-config, chmod +x src/npth-config)
-AC_CONFIG_FILES(w32/npth-config, chmod +x w32/npth-config)
+AC_CONFIG_FILES(npth-config, chmod +x npth-config)
 AC_OUTPUT
 
 echo "

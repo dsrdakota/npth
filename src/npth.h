@@ -1,5 +1,5 @@
 /* npth.h - a lightweight implementation of pth over pthread.
-            Configured for: i686-pc-linux-gnu.
+            Configured for: x86_64-unknown-linux-gnu.
    Copyright (C) 2011, 2012 g10 Code GmbH
 
    This file is part of NPTH.
