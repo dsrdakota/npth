@@ -1,4 +1,5 @@
 /* npth.h - a lightweight implementation of pth over pthread.
+            Configured for: i686-pc-linux-gnu.
    Copyright (C) 2011, 2012 g10 Code GmbH
 
    This file is part of NPTH.
@@ -50,9 +51,12 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <time.h>
 #include <sys/socket.h>
+#define _npth_socklen_t socklen_t
 #include <sys/select.h>
+#include <signal.h>
 
 #include <pthread.h>
 
@@ -339,8 +343,8 @@ int npth_system(const char *cmd);
 #define npth_sigmask pthread_sigmask
 int npth_sigwait(const sigset_t *set, int *sig);
 
-int npth_connect(int s, const struct sockaddr *addr, socklen_t addrlen);
-int npth_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
+int npth_connect(int s, const struct sockaddr *addr, _npth_socklen_t addrlen);
+int npth_accept(int s, struct sockaddr *addr, _npth_socklen_t *addrlen);
 int npth_select(int nfd, fd_set *rfds, fd_set *wfds, fd_set *efds,
 		struct timeval *timeout);
 int npth_pselect(int nfd, fd_set *rfds, fd_set *wfds, fd_set *efds,

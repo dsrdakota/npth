@@ -36,20 +36,15 @@
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#ifndef HAVE_PSELECT
+# include <signal.h>
+#endif
 
 #include "npth.h"
 
-
-#include <stdio.h>
-#define DEBUG_CALLS 1
-#define _npth_debug(x, ...) printf(__VA_ARGS__)
-
-#ifndef TEST
-#undef  DEBUG_CALLS
-#define DEBUG_CALLS 0
-#undef _npth_debug
-#define _npth_debug(x, ...)
-#endif
 
 /* The global lock that excludes all threads but one.  This is a
    semaphore, because these can be safely used in a library even if
@@ -59,7 +54,11 @@
    owner, while a semaphore does not.)  */
 static sem_t sceptre;
 
-static pthread_t main_thread;
+/* The main thread is the active thread at the time pth_init was
+   called.  As of now it is only useful for debugging.  The volatile
+   make sure the compiler does not eliminate this set but not used
+   variable.  */
+static volatile pthread_t main_thread;
 
 /* Systems that don't have pthread_mutex_timedlock get a busy wait
    implementation that probes the lock every BUSY_WAIT_INTERVAL
@@ -109,20 +108,17 @@ busy_wait_for (trylock_func_t trylock, void *lock,
 
 
 static void
-enter_npth (const char *function)
+enter_npth (void)
 {
   int res;
 
-  if (DEBUG_CALLS)
-    _npth_debug (DEBUG_CALLS, "enter_npth (%s)\n",
-		 function ? function : "unknown");
   res = sem_post (&sceptre);
   assert (res == 0);
 }
 
 
 static void
-leave_npth (const char *function)
+leave_npth (void)
 {
   int res;
 
@@ -131,14 +127,11 @@ leave_npth (const char *function)
   } while (res < 0 && errno == EINTR);
 
   assert (!res);
-
-  if (DEBUG_CALLS)
-    _npth_debug (DEBUG_CALLS, "leave_npth (%s)\n",
-		 function ? function : "");
 }
 
-#define ENTER() enter_npth(__FUNCTION__)
-#define LEAVE() leave_npth(__FUNCTION__)
+#define ENTER() enter_npth ()
+#define LEAVE() leave_npth ()
+
 
 int
 npth_init (void)
@@ -148,8 +141,16 @@ npth_init (void)
   main_thread = pthread_self();
 
   /* The semaphore is not shared and binary.  */
-  sem_init(&sceptre, 0, 1);
+  res = sem_init(&sceptre, 0, 1);
   if (res < 0)
+    {
+      /* POSIX.1-2001 defines the semaphore interface but does not
+         specify the return value for success.  Thus we better bail
+         out on error only on a POSIX.1-2008 system.  */
+#if _POSIX_C_SOURCE >= 200809L
+      return errno;
+#endif
+    }
 
   LEAVE();
   return 0;
@@ -173,8 +174,8 @@ npth_getname_np (npth_t target_thread, char *buf, size_t buflen)
 int
 npth_setname_np (npth_t target_thread, const char *name)
 {
-#ifdef HAVE_PTHREAD_SERNAME_NP
-  return pthread_settname_np (target_thread, name);
+#ifdef HAVE_PTHREAD_SETNAME_NP
+  return pthread_setname_np (target_thread, name);
 #else
   (void)target_thread;
   (void)name;
@@ -393,6 +394,8 @@ npth_rwlock_timedwrlock (npth_rwlock_t *rwlock, const struct timespec *abstime)
 #elif HAVE_PTHREAD_RWLOCK_TRYRDLOCK
   err = busy_wait_for ((trylock_func_t) pthread_rwlock_trywrlock, rwlock,
 		       abstime);
+#else
+  err = ENOSYS;
 #endif
   LEAVE();
   return err;
@@ -519,7 +522,54 @@ npth_pselect(int nfd, fd_set *rfds, fd_set *wfds, fd_set *efds,
   int res;
 
   ENTER();
-  res = pselect(nfd, rfds, wfds, efds, timeout, sigmask);
+#ifdef HAVE_PSELECT
+  res = pselect (nfd, rfds, wfds, efds, timeout, sigmask);
+#else /*!HAVE_PSELECT*/
+  {
+    /* A better emulation of pselect would be to create a pipe, wait
+       in the select for one end and have a signal handler write to
+       the other end.  However, this is non-trivial to implement and
+       thus we only print a compile time warning.  */
+#   ifdef __GNUC__
+#     warning Using a non race free pselect emulation.
+#   endif
+
+    struct timeval t, *tp;
+
+    tp = NULL;
+    if (!timeout)
+      ;
+    else if (timeout->tv_nsec >= 0 && timeout->tv_nsec < 1000000000)
+      {
+        t.tv_sec = timeout->tv_sec;
+        t.tv_usec = (timeout->tv_nsec + 999) / 1000;
+        tp = &t;
+      }
+    else
+      {
+        errno = EINVAL;
+        res = -1;
+        goto leave;
+      }
+
+    if (sigmask)
+      {
+        int save_errno;
+        sigset_t savemask;
+
+        pthread_sigmask (SIG_SETMASK, sigmask, &savemask);
+        res = select (nfd, rfds, wfds, efds, tp);
+        save_errno = errno;
+        pthread_sigmask (SIG_SETMASK, &savemask, NULL);
+        errno = save_errno;
+      }
+    else
+      res = select (nfd, rfds, wfds, efds, tp);
+
+  leave:
+    ;
+  }
+#endif /*!HAVE_PSELECT*/
   LEAVE();
   return res;
 }
@@ -590,8 +640,18 @@ npth_protect (void)
 int
 npth_clock_gettime (struct timespec *ts)
 {
-#if HAVE_CLOCK_GETTIME
+#if defined(CLOCK_REALTIME) && HAVE_CLOCK_GETTIME
   return clock_gettime (CLOCK_REALTIME, ts);
+#elif HAVE_GETTIMEOFDAY
+  {
+    struct timeval tv;
+
+    if (gettimeofday (&tv, NULL))
+      return -1;
+    ts->tv_sec = tv.tv_sec;
+    ts->tv_nsec = tv.tv_usec * 1000;
+    return 0;
+  }
 #else
   /* FIXME: fall back on time() with seconds resolution.  */
 # error clock_gettime not available - please provide a fallback.
