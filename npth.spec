@@ -1,7 +1,7 @@
 # This is a template.  The dist target uses it to create the real file.
 Summary: NPTH - the new GNU Portable Threads Library
 Name: npth
-Version: 1.0
+Version: 1.1
 Release: 1
 URL: http://www.gnupg.org/
 Source: ftp://ftp.gnupg.org/gcrypt/alpha
