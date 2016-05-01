@@ -28,14 +28,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-min_automake_version="1.11"
+min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
 # (git tag -s npth-n.m) and run "./autogen.sh --force".  Please bump
 # the version number immediately after the release and do another
 # commit and push so that the git magic is able to work.
 # See below for the LT versions.
-m4_define(my_version, [1.1])
+m4_define(my_version, [1.2])
 
 # Below is m4 magic to extract and compute the git revision number,
 # the decimalized short revision number, a beta version string and a
@@ -61,7 +61,7 @@ AC_INIT([npth],[my_full_version],[gnupg-devel@gnupg.org])
 #
 LIBNPTH_LT_CURRENT=0
 LIBNPTH_LT_AGE=0
-LIBNPTH_LT_REVISION=4
+LIBNPTH_LT_REVISION=5
 
 # If the API is changed in an incompatible way: increment the next counter.
 NPTH_CONFIG_API_VERSION=1
@@ -74,7 +74,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/npth.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
+AM_INIT_AUTOMAKE([serial-tests dist-bzip2 no-dist-gzip])
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 AM_SILENT_RULES

@@ -1,3 +1,29 @@
+2015-04-11  Werner Koch  <wk@gnupg.org>
+
+	Release 1.2.
+
+2015-02-03  Werner Koch  <wk@gnupg.org>
+
+	w32: Use -static-libgcc to avoid linking to libgcc_s_sjlj-1.dll.
+	* w32/Makefile.am: Remove non-Windows stuff.
+	(extra_ltoptions): New.
+	(libnpth_la_LDFLAGS): Use it.
+
+2015-01-28  Werner Koch  <wk@gnupg.org>
+
+	Switch to automake 1.14.
+	* Makefile.am (AUTOMAKE_OPTIONS): Move to ...
+	* configure.ac (AM_INIT_AUTOMAKE): here.  Add serial-tests.
+	* build-aux/compile: Add.
+	* build-aux/config.guess, build-aux/config.sub: Update.
+	* build-aux/depcomp: Update.
+	* build-aux/missing: Update.
+
+2014-12-18  Werner Koch  <wk@gnupg.org>
+
+	Don't get fooled by leave_npth changing ERRNO.
+	* src/npth.c: Save ERRNO.
+
 2014-10-31  Werner Koch  <wk@gnupg.org>
 
 	Release 1.1.
