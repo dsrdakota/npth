@@ -1,0 +1,249 @@
+2012-05-04  Werner Koch  <wk@gnupg.org>
+
+	Release 0.90.
+	* configure.ac: Bump LT version to C0/A0/R1.
+
+2012-03-09  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Support Android API level earlier than 9.
+	* src/npth.h [__ANDROID__]: Include <android/api-level.h>
+	(_NPTH_NO_RWLOCK) [__ANDROID__ && __ANDROID_API__ < 9]: Define.
+	(npth_rwlockattr_t, npth_rwlockattr_init, npth_rwlockattr_destroy,
+	npth_rwlockattr_gettype_np, npth_rwlockattr_settype_np,
+	NPTH_RWLOCK_PREFER_READER_NP, NPTH_RWLOCK_PREFER_WRITER_NP,
+	NPTH_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP, NPTH_RWLOCK_DEFAULT_NP,
+	NPTH_RWLOCK_INITIALIZER, NPTH_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP,
+	NPTH_MUTEX_INITIALIZER, npth_rwlock_t, npth_rwlock_init,
+	npth_rwlock_destroy, npth_rwlock_tryrdlock, npth_rwlock_rdlock,
+	npth_rwlock_trywrlock, npth_rwlock_timedrdlock, npth_rwlock_wrlock,
+	npth_rwlock_rdlock, npth_rwlock_timedwrlock, npth_rwlock_unlock
+	(_NPTH_NO_RWLOCK): Alternative implementation based on mutex.
+
+2012-02-28  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Remove npth_yield.
+	* src/npth.h.in (npth_yield): Macro removed (should have been a
+	function anyway).
+	* w32/npth.c (npth_yield): Remove function.
+	* w32/npth.h (npth_yield): Remove prototype.
+	* w32/npth.def (npth_yield): Remove symbol export.
+
+	Make rwlock try and timed functions optional.
+	* configure.ac: Check for pthread_rwlock_rdlock, pthread_rwlock_wrlock,
+	pthread_rwlock_timedrdlock, pthread_rwlock_timedwrlock,
+	pthread_rwlock_tryrdlock, pthread_rwlock_trywrlock.
+	* src/npth.c (trylock_func_t): New type.
+	(busy_wait_for): New function.
+	(npth_mutex_timedlock) [!HAVE_PTHREAD_MUTEX_TIMEDLOCK]: Reimplement
+	in terms of busy_wait_for.
+	(npth_rwlock_rdlock, npth_rwlock_timedrdlock)
+	[!HAVE_PTHREAD_RWLOCK_TRYRDLOCK]: Skip trylock.
+	(npth_rwlock_wrlock, npth_rwlock_timedwrlock)
+	[!HAVE_PTHREAD_RWLOCK_TRYWRLOCK]: Skip trylock call.
+	(npth_rwlock_timedrdlock) [!HAVE_PTHREAD_RWLOCK_TIMEDRDLOCK]:
+	Use busy_wait_for.
+	(npth_rwlock_timedwrlock) [!HAVE_PTHREAD_RWLOCK_TIMEDWRLOCK]:
+	Use busy_wait_for.
+
+	Add generated files src/npth.h and w32/npth-config.
+
+2012-02-08  Marcus Brinkmann  <mb@g10code.com>
+
+	Fix include path for non-w32 builds.
+	* tests/Makefile.am (AM_CPPFLAGS) [!HAVE_W32_SYSTEM]:
+	Locate header in build dir, not src.
+
+2012-01-31  Marcus Brinkmann  <mb@g10code.com>
+
+	Implement npth_mutex_timedlock for inferior systems.
+	* configure.ac: Check for pthread_mutex_timedlock.
+	* src/npth.c (BUSY_WAIT_INTERVAL): New macro.
+	(npth_mutex_timedlock): If pthread_mutex_timedlock is missing,
+	use a poke-the-stick-at-it strategy.
+
+2012-01-27  Werner Koch  <wk@gnupg.org>
+
+	Include sys/select.h if needed.
+	* src/npth.h: Rename to npth.h.in.  Include sys/select.h if
+	available. Add usual read-only comments.
+	* configure.ac: Create npth.h.
+	(INSERT_SYS_SELECT_N): New
+	(emacs_local_vars_read_only): New vars to support read-only switching.
+
+	Update config.guess and config.sub.
+	* config.guess, config.sub: Update to version 2012-01-01.
+	* autogen.sh: Fix typo.
+
+	Encapsulate clock_gettime.
+	* src/Makefile.am (libnpth_la_LDFLAGS): Remove -pthread and -lrt.
+	* src/npth.h (npth_clock_gettime): Turn macro into a function.
+	* src/npth.c (npth_clock_gettime): New.
+	* src/libnpth.vers: Add npth_clock_gettime.
+
+	Improve pthread library detection.
+	* configure.ac: Reorder some code.  Improve pthread test to take libc
+	in account.  Generate NPTH_CONFIG_LIBS from tests.
+	* src/npth-config.in: Use NPTH_CONFIG_LIBS.
+	* w32/npth-config.in: Ditto.
+	* tests/Makefile.am (AM_CPPFLAGS, AM_LDFLAGS): Don not pass -pthread.
+
+2012-01-26  Werner Koch  <wk@gnupg.org>
+
+	Remove unused include files from npth.h.
+	* src/npth.h: Remove unused poll.h and errno.h includes.
+
+	Make npth_{s,g}etname_np portable.
+	These functions are usually used for debugging.  On systems where
+	they are not easy to support they will now simply return ENOSYS.
+	* configure.ac: Check for pthread_setname_np and pthread_getname_np.
+	* src/libnpth.vers: Add npth_setname_np and npth_getname_np.
+	* src/npth.c (npth_setname_np, npth_getname_np): New.
+	* src/npth.h (npth_setname_np, npth_getname_np): Turn macros into
+	functions.
+
+	Check for the non-portable pthread_tryjoin_np.
+	* configure.ac: Check for pthread_tryjoin_np.  Also rework the pthread
+	test to update LIBS
+	* src/npth.c (npth_join) [HAVE_PTHREAD_TRYJOIN_NP]: Use
+	pthread_tryjoin_np only if available.
+
+2012-01-25  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Fix thread startup.
+	* src/npth.c (npth_create): Fix startup data use.
+
+2012-01-25  Werner Koch  <wk@gnupg.org>
+
+	Include stdlib.h for malloc prototypes.
+	* src/npth.c: Include stdlib.h.
+
+2012-01-24  Werner Koch  <wk@gnupg.org>
+
+	Require gitlog-to-changelog to be installed.
+	* Makefile.am (gen-ChangeLog): Do no use included gitlog-to-changelog.
+	Use options --append-dot and --tear-off.
+	* build-aux/gitlog-to-changelog: Remove from repo.
+
+2012-01-23  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Allow manually unprotect/protect calls.
+	* src/libnpth.vers (npth_unprotect, npth_protect): New symbols.
+	* src/npth.c (npth_unprotect, npth_protect): New functions.
+	* src/npth.h (npth_unprotect, npth_protect): New declaration.
+	* w32/npth.def (npth_unprotect, npth_protect): New exports.
+	* w32/npth.c (npth_unprotect, npth_protect): New functions.
+	* w32/npth.h (npth_unprotect, npth_protect): New declaration.
+
+2012-01-19  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Allow no extra events in npth_eselect.
+	* w32/npth.c (npth_eselect): Allow events to be NULL.
+
+	Implement ability to wait on sockets and events.
+	* w32/npth.c (npth_eselect): New function.
+	* w32/npth.h (npth_eselect): New declaration.
+	* w32/npth.def (npth_eselect): New export.
+
+	Remove libnpth.vers dependency.
+	* w32/Makefile.am (libnpth_la_DEPENDENCIES): Remove libnpth.vers.
+
+	Release mutex temporarily on instant timeout in npth_cond_timedwait.
+	* w32/npth.c (npth_cond_timedwait): Release mutex temporarily even on
+	instant timeout.
+
+2012-01-13  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Remove obsolete file.
+	* src/Makefile.am (EXTRA_DIST): Remove npth.def
+	* src/npth.def: Removed.
+
+	Initial support for w32.
+	* Makefile.am [HAVE_W32_SYSTEM]: Build from w32 directory.
+	* configure.ac: Don't check for pthread on windows.  Add winsock
+	library on windows.  Add w32 subdirectory to config files.
+	* w32/npth.h, w32/npth.c, w32/Makefile.am, w32/npth.def,
+	w32/npth-config.in, w32/npth.m4: New files.
+	* tests/Makefile.am: Allow building on w32.
+
+	Add missing function npth_system.
+	* src/npth.c (npth_system): New function.
+
+2012-01-11  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Remove duplicated macro.
+	* npth.h (PTHREAD_RWLOCK_INITIALIZER): Remove.
+
+	Add some missing interfaces.
+	* npth.h (npth_key_delete, NPTH_ERRORCHECK_MUTEX_INITIALIZER_NP,
+	npth_rwlockattr_t, npth_rwlockattr_init, npth_rwlockattr_destroy,
+	npth_rwlockattr_gettype_np, npth_rwlockattr_settype_np,
+	NPTH_RWLOCK_PREFER_READER_NP, NPTH_RWLOCK_PREFER_WRITER_NP,
+	NPTH_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP, NPTH_RWLOCK_DEFAULT_NP,
+	NPTH_RWLOCK_INITIALIZER, NPTH_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP):
+	New macros.
+	(NPTH_RWLOCK_INIT): Rename to ...
+	(NPTH_RWLOCK_INITIALIZER): ... this.
+
+2012-01-06  Marcus Brinkmann  <marcus.brinkmann@ruhr-uni-bochum.de>
+
+	Fix exclusion logic at thread creation and allow main thread to exit.
+	* libnpth.vers (npth_create, npth_exit): New.
+	* npth.def (npth_create, npth_exit): Likewise.
+	* npth.h (npth_create): Change from macro to declaration.
+	(npth_exit): New declaration.
+	* npth.c (startup_s): New struct.
+	(thread_startup, npth_create, npth_exit): New functions.
+
+2011-12-06  Werner Koch  <wk@gnupg.org>
+
+	Create the ChangeLog from the git commit log.
+	* autogen.sh: Install git commit log checker.
+	* build-aux/git-hooks/commit-msg: New.  Repo only.
+	* build-aux/git-log-fix: New.  Repo only.
+	* build-aux/git-log-footer: New.  Repo only.
+	* build-aux/gitlog-to-changelog: New.  Repo only.
+	* HACKING: New.
+	* Makefile.am (gen-Changelog): New rule.
+	(dist-hook):  Depend on gen-Changelog.
+	(EXTRA_DIST): Add HACKING.
+	* ChangeLog: New stub file.
+
+2011-11-07  Marcus Brinkmann  <marcus@g10code.com>
+
+	* src/npth.c (leave_npth): Loop over sem_wait on EINTR.
+
+2011-10-26  Marcus Brinkmann  <marcus@g10code.com>
+
+	* src/npth.h (npth_mutex_destroy): Add it.
+	(npth_join): Make it a proper function.
+	(_npth_mutex_lock, _npth_mutex_timedlock, _npth_rwlock_rdlock)
+	(_npth_rwlock_timedrdlock, _npth_rwlock_wrlock)
+	(_npth_rwlock_timedwrlock): Renamed to the variant without the
+	leading underscore.  There was no reason to have the static
+	function wrappers.
+	* src/npth.c: Corresponding changes here.
+	* src/npth.def: Also here.
+	* src/libnpth.vers: Likewise.
+
+2011-10-07  Marcus Brinkmann  <marcus@g10code.com>
+
+	* src/npth.h (npth_mutexattr_t, npth_mutexattr_init)
+	(npth_mutexattr_destroy, npth_mutexattr_settype)
+	(npth_mutexattr_gettype, NPTH_MUTEX_NORMAL, NPTH_MUTEX_RECURSIVE)
+	(NPTH_MUTEX_ERRORCHECK, NPTH_MUTEX_DEFAULT): New.
+	* src/npth.c (npth_mutex_init): Removed.
+	* src/libnpth.vers: Remove npth_mutex_init.
+	* src/npth.def: Likewise.  Add missing numbers.
+	* tests/t-mutex.c: Adjust to new interface.
+
+2011-10-06  Marcus Brinkmann  <marcus@g10code.com>
+
+	* Initial version.
+
+        -----
+	Copyright (C) 2011 g10 Code GmbH
+
+	Copying and distribution of this file and/or the original GIT
+	commit log messages, with or without modification, are
+	permitted provided the copyright notice and this notice are
+	preserved.
